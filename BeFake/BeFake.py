@@ -72,14 +72,28 @@ class BeFake:
     def __repr__(self):
         return f"BeFake(user_id={self.user_id})"
 
+    def get_session(self):
+        session = {"access": {}, "firebase": {}}
+
+        if hasattr(self, "refresh_token"):
+            session["access"]["refresh_token"] = self.refresh_token
+        if hasattr(self, "token"):
+            session["access"]["token"] = self.token
+        if hasattr(self, "expiration"):
+            session["access"]["expires"] = self.expiration.timestamp()
+        if hasattr(self, "firebase_refresh_token"):
+            session["firebase"]["refresh_token"] = self.firebase_refresh_token
+        if hasattr(self, "firebase_token"):
+            session["firebase"]["token"] = self.firebase_token
+        if hasattr(self, "firebase_expiration"):
+            session["firebase"]["expires"] = self.firebase_expiration.timestamp()
+        if hasattr(self, "user_id"):
+            session["user_id"] = self.user_id
+
+        return session
+
     def save(self, file_path: Optional[str] = None) -> None:
-        session = {"access": {"refresh_token": self.refresh_token,
-                              "token": self.token,
-                              "expires": self.expiration.timestamp()},
-                   "firebase": {"refresh_token": self.firebase_refresh_token,
-                                "token": self.firebase_token,
-                                "expires": self.firebase_expiration.timestamp()},
-                    "user_id": self.user_id}
+        session = self.get_session()
 
         if file_path is None:
             file_path = get_default_session_filename()
