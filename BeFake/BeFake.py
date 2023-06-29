@@ -55,15 +55,19 @@ class BeFake:
             disable_ssl=False,
             deviceId=None,
             api_url="https://mobile.bereal.com/api",
-            google_api_key="AIzaSyDwjfEeparokD7sXPVQli9NsTuhT6fJ6iA",
+            google_api_key="AIzaSyDsHincWT9bwXimnY0ZKnXs7mf9C26WU44",
     ) -> None:
         self.client = httpx.Client(
             proxies=proxies,
             verify=not disable_ssl,
             headers={
-                # "user-agent": "AlexisBarreyat.BeReal/0.24.0 iPhone/16.0.2 hw/iPhone12_8 (GTMSUF/1)",
-                "user-agent": "BeReal/1.0.1 (AlexisBarreyat.BeReal; build:9513; iOS 16.0.2) 1.0.0/BRApriKit",
-                "x-ios-bundle-identifier": "AlexisBarreyat.BeReal",
+                "user-agent": "okhttp/4.10.0",
+                "bereal-app-language": "en",
+                "bereal-app-version": "1.4.5",
+                "bereal-app-version-code": "1503",
+                "bereal-device-language": "en",
+                "bereal-os-version": "13",
+                "bereal-platform": "android",
             },
             timeout=15
         )
