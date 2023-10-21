@@ -195,7 +195,7 @@ def feed(bf, feed_id, save_location, realmoji_location, instant_realmoji_locatio
                     _realmoji_location = _realmoji_location.format(user=emoji.username, type=emoji.type,
                                                                    feed_id=feed_id, notification_id=item.notification_id,
                                                                    post_date=post_date, post_user=item.user.username,
-                                                                   post_id=post.id, date='{date}')
+                                                                   post_id=post.id, emoji_id=emoji.id, date='{date}')
 
                     # Getting the realmoji creation date sends an extra request
                     # Only use that if it's actually needed
