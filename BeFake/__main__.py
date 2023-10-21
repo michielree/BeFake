@@ -201,7 +201,7 @@ def feed(bf, feed_id, save_location, realmoji_location, instant_realmoji_locatio
                     # Only use that if it's actually needed
                     if '{date}' in _realmoji_location:
                         _realmoji_location = _realmoji_location.format(
-                            date=emoji.get_creation_date().format(date_format))
+                            date=emoji.date.format(date_format))
 
                     os.makedirs(os.path.dirname(_realmoji_location), exist_ok=True)
                     emoji.photo.download(f"{_realmoji_location}")
