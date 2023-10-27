@@ -61,13 +61,19 @@ class BeFake:
             proxies=proxies,
             verify=not disable_ssl,
             headers={
-                "user-agent": "okhttp/4.10.0",
+                "Accept-Encoding": "gzip",
+                "Authorization": "Bearer [token]",
                 "bereal-app-language": "en",
-                "bereal-app-version": "1.4.5",
-                "bereal-app-version-code": "1503",
+                "bereal-app-version": "1.9.2",
+                "bereal-app-version-code": "1548",
                 "bereal-device-language": "en",
                 "bereal-os-version": "13",
                 "bereal-platform": "android",
+                "bereal-timezone": "Europe/London", #UTC Timezone
+                "Connection": "Keep-Alive",
+                "Host": "mobile.bereal.com",
+                "User-Agent": "okhttp/4.11.0",
+                "x-datadog-sampling-priority": "0"
             },
             timeout=15
         )
