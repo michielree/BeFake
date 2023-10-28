@@ -71,7 +71,6 @@ class BeFake:
                 "bereal-platform": "android",
                 "bereal-timezone": "Europe/London", #UTC Timezone
                 "Connection": "Keep-Alive",
-                "Host": "mobile.bereal.com",
                 "User-Agent": "okhttp/4.11.0",
                 "x-datadog-sampling-priority": "0"
             },
