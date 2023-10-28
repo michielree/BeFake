@@ -62,17 +62,15 @@ class BeFake:
             verify=not disable_ssl,
             headers={
                 "Accept-Encoding": "gzip",
-                "Authorization": "Bearer [token]",
                 "bereal-app-language": "en",
-                "bereal-app-version": "1.9.2",
-                "bereal-app-version-code": "1548",
+                "bereal-app-version": "1.13.1",
+                "bereal-app-version-code": "1590",
                 "bereal-device-language": "en",
                 "bereal-os-version": "13",
                 "bereal-platform": "android",
                 "bereal-timezone": "Europe/London", #UTC Timezone
                 "Connection": "Keep-Alive",
                 "User-Agent": "okhttp/4.11.0",
-                "x-datadog-sampling-priority": "0"
             },
             timeout=15
         )
@@ -334,8 +332,8 @@ class BeFake:
             "https://auth.bereal.team/token",
             params={"grant_type": "refresh_token"},
             json={"grant_type": "refresh_token",
-                  "client_id": "ios",
-                  "client_secret": "962D357B-B134-4AB6-8F53-BEA2B7255420",
+                  "client_id": "android",
+                  "client_secret": "F5A71DA-32C7-425C-A3E3-375B4DACA406",
                   "refresh_token": self.refresh_token
                   })
         if not res.is_success:
@@ -352,8 +350,8 @@ class BeFake:
     def grant_access_token(self) -> None:
         res = self.client.post("https://auth.bereal.team/token", params={"grant_type": "firebase"}, json={
             "grant_type": "firebase",
-            "client_id": "ios",
-            "client_secret": "962D357B-B134-4AB6-8F53-BEA2B7255420",
+            "client_id": "android",
+            "client_secret": "F5A71DA-32C7-425C-A3E3-375B4DACA406",
             "token": self.firebase_token
         })
         if not res.is_success:
@@ -371,7 +369,15 @@ class BeFake:
         res = self.client.post("https://securetoken.googleapis.com/v1/token", params={"key": self.gapi_key},
                                data={"grantType": "refresh_token",
                                      "refreshToken": self.firebase_refresh_token
-                                     })
+                                     },
+                               headers={
+                                   "x-android-cert": "1D14AB0C48B1B2AD252C79D65F48BAE37AEFE8BB",
+                                   "x-android-package": "com.bereal.ft",
+                                   "x-client-version": "Android/Fallback/X22001002/FirebaseCore-Android",
+                                   "x-firebase-client": "H4sIAAAAAAAAAKtWykhNLCpJSk0sKVayio7VUSpLLSrOzM9TslIyUqoFAFyivEQfAAAA",
+                                   "x-firebase-gmpid": "1:405768487586:android:5c3e788d715d72c2dc8dfb",
+                                   "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 13; sdk_gphone64_x86_64 Build/TE1A.220922.010)",
+                               })
         if not res.is_success:
             raise Exception(res.content)
         res = res.json()
