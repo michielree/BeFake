@@ -119,8 +119,9 @@ class BeFake:
             self.firebase_expiration = pendulum.from_timestamp(
                 session["firebase"]["expires"])
 
-            if pendulum.now().add(minutes=3) >= self.expiration:
-                self.refresh_tokens()
+            # This is broken, probably due to request signature verification
+            #if pendulum.now().add(minutes=3) >= self.expiration:
+            #    self.refresh_tokens()
 
             if pendulum.now().add(minutes=3) >= self.firebase_expiration:
                 self.firebase_refresh_tokens()

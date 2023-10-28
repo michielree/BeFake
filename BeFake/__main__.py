@@ -104,7 +104,7 @@ def refresh(bf):
     # In that scenario, a double refresh will be done.
     # Since this command is mostly used for debugging, it wouldn't be practical to add extra code to prevent this
     # behaviour.
-    bf.refresh_tokens()
+    bf.firebase_refresh_tokens()
     click.echo(bf.token, nl=False)
 
 
