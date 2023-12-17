@@ -9,6 +9,7 @@ from PIL import Image
 
 
 class Picture(object):
+    # HACK: Now also handles videos, but this is not reflected in the name
     def __init__(self, data_dict, url=None, width=None, height=None) -> None:
         self.url = data_dict.get("url", url)
         if self.exists():

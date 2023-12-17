@@ -27,6 +27,7 @@ class PostV1(object):
         self.id = data_dict.get("id", None)
         self.primary_photo = Picture(data_dict.get("primary", {}))
         self.secondary_photo = Picture(data_dict.get("secondary", {}))
+        self.bts_video = Picture(data_dict.get("btsMedia", {}))
         self.caption = data_dict.get("caption", None)
         self.is_late = data_dict.get("isLate", None)
         self.is_main = data_dict.get("isMain", None)

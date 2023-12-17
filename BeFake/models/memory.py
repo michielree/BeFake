@@ -8,6 +8,8 @@ class Memory(object):
         self.thumbnail = Picture(data_dict.get("thumbnail", {}))
         self.primary_photo = Picture(data_dict.get("primary", {}))
         self.secondary_photo = Picture(data_dict.get("secondary", {}))
+        # TODO: untested ↓
+        self.bts_video = Picture(data_dict.get("btsMedia", {}))
         self.is_late = data_dict.get("isLate", None)
         self.memory_day = data_dict.get("memoryDay", None)
         self.data_dict = data_dict

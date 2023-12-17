@@ -146,6 +146,9 @@ def feed(bf, feed_id, save_location, realmoji_location, instant_realmoji_locatio
                 f.write(json.dumps(item.data_dict, indent=4))
             item.primary_photo.download(f"{_save_location}/primary")
             item.secondary_photo.download(f"{_save_location}/secondary")
+            if item.bts_video.exists():
+                # FIXME: bts_video successfully instantiates when there is none, but download() would fail
+                item.bts_video.download(f"{_save_location}/bts")
 
         elif feed_id == "friends-v1":
             for post in item.posts:
@@ -159,6 +162,9 @@ def feed(bf, feed_id, save_location, realmoji_location, instant_realmoji_locatio
                     f.write(json.dumps(post.data_dict, indent=4))
                 post.primary_photo.download(f"{_save_location}/primary")
                 post.secondary_photo.download(f"{_save_location}/secondary")
+                if post.bts_video.exists():
+                    # FIXME: bts_video successfully instantiates when there is none, but download() would fail
+                    post.bts_video.download(f"{_save_location}/bts")
                 for emoji in post.realmojis:
                     # Differenciate between instant and non-instant realomji locations
                     _realmoji_location = instant_realmoji_location if emoji.type == 'instant' else realmoji_location
@@ -189,6 +195,9 @@ def feed(bf, feed_id, save_location, realmoji_location, instant_realmoji_locatio
                 f.write(json.dumps(item.data_dict, indent=4))
             item.primary_photo.download(f"{_save_location}/primary")
             item.secondary_photo.download(f"{_save_location}/secondary")
+            if item.bts_video.exists():
+                # FIXME: bts_video successfully instantiates when there is none, but download() would fail
+                item.bts_video.download(f"{_save_location}/bts")
             for emoji in item.realmojis:
                 # Differenciate between instant and non-instant realomji locations
                 _realmoji_location = instant_realmoji_location if emoji.type == 'instant' else realmoji_location
