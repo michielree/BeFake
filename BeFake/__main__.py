@@ -1,18 +1,25 @@
 import json
+import logging
 import os
-
+import random
+import string
 from functools import wraps
 
-import string
-import random
+import click
+from rich.logging import RichHandler
 
 from .BeFake import BeFake
-from .models.post import Post, Location
+from .models.post import Location, Post
 
-try:
-    import rich_click as click
-except ImportError:
-    import click
+import logging
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(message)s",
+    datefmt="[%X]",
+    handlers=[RichHandler()],
+)
+logging.getLogger('urllib3').setLevel(logging.WARNING)
 
 DATA_DIR = "data"
 
@@ -152,7 +159,7 @@ def feed(bf, feed_id, save_location, realmoji_location, instant_realmoji_locatio
 
         elif feed_id == "friends-v1":
             for post in item.posts:
-                click.echo(f"saving posts by {item.user.username}".ljust(50, " ") + post.id)
+                logging.info(f"saving posts by {item.user.username}".ljust(50, " ") + post.id)
                 post_date = post.creation_date.format(date_format)
                 _save_location = save_location.format(user=item.user.username, date=post_date, feed_id=feed_id,
                                                   post_id=post.id, notification_id=item.notification_id)

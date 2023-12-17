@@ -1,10 +1,11 @@
 import datetime
+import io
+import logging
 import os.path
 from typing import Optional
 
 import httpx
 import pendulum
-import io
 from PIL import Image
 
 
@@ -40,6 +41,7 @@ class Picture(object):
 
         # don't re-download already saved pictures
         if path and os.path.exists(f"{path}.{file_ext}"):
+            logging.debug(f"Skipping already-downloaded {self.url}")
             return
 
         r = httpx.get(self.url, headers={
@@ -58,6 +60,7 @@ class Picture(object):
             else:
                 with open(f"{path}.{self.ext}", "wb") as f:
                     f.write(self.data)
+            logging.debug(f"Downloaded {self.url}")
 
         return r.content
 
