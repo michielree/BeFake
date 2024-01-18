@@ -1,20 +1,20 @@
+import hashlib
+import json
+import logging
+import os
+import platform
 import urllib.parse
 from base64 import b64decode
-import json
 from typing import Optional
 
 import httpx
 import pendulum
-import hashlib
-import platform
-import os
 
-from .models.post_v1 import PostsV1
-from .models.realmoji_picture import RealmojiPicture
-
-from .models.post import Post, FOFPost
 from .models.memory import Memory
 from .models.memory_v1 import Memory_v1
+from .models.post import FOFPost, Post
+from .models.post_v1 import PostsV1
+from .models.realmoji_picture import RealmojiPicture
 from .models.user import User
 
 
@@ -139,32 +139,19 @@ class BeFake:
             self.user_id = session["user_id"]
             self.refresh_token = session["access"]["refresh_token"]
             self.token = session["access"]["token"]
-            self.expiration = pendulum.from_timestamp(
-                session["access"]["expires"])
+            self.expiration = pendulum.from_timestamp(session["access"]["expires"])
 
             self.firebase_refresh_token = session["firebase"]["refresh_token"]
             self.firebase_token = session["firebase"]["token"]
-            self.firebase_expiration = pendulum.from_timestamp(
-                session["firebase"]["expires"])
+            self.firebase_expiration = pendulum.from_timestamp(session["firebase"]["expires"])
 
-            # This is broken, probably due to request signature verification
-            # if pendulum.now().add(minutes=3) >= self.expiration:
-            #    self.refresh_tokens()
+            if pendulum.now().add(minutes=3) >= self.expiration:
+                logging.info("Refreshing access token…")
+                self.refresh_tokens()
 
             if pendulum.now().add(minutes=3) >= self.firebase_expiration:
+                logging.info("Refreshing firebase token…")
                 self.firebase_refresh_tokens()
-
-    def legacy_load(self):  # DEPRECATED, use this once to convert to new token
-        if os.environ.get('IS_DOCKER', False):
-            file_path = '/data/token.txt'
-
-        config_dir = _get_config_dir()
-        token_filename = f"token.txt"
-        file_path = os.path.join(config_dir, token_filename)
-        with open(file_path, "r") as f:
-            self.firebase_refresh_token = str(f.read()).strip()
-            self.firebase_refresh_tokens()
-            self.grant_access_token()
 
     def api_request(self, method: str, endpoint: str, **kwargs) -> dict:
         assert not endpoint.startswith("/")
@@ -437,10 +424,6 @@ class BeFake:
         res = self.api_request("get", f"person/profiles/{user_id}")
         return User(res, self)
 
-    def get_friends_feed(self):
-        res = self.api_request("get", "feeds/friends")
-        return [Post(p, self) for p in res]
-
     def get_friendsv1_feed(self):
         res = self.api_request("get", "feeds/friends-v1")
         user = []
@@ -468,11 +451,11 @@ class BeFake:
         memories = [Memory_v1(mem, self) for mem in res["data"]]
         newMemories = []
 
-        click.echo("Requesting all memories' posts")
+        logging.info("Requesting all memories' posts")
 
         # get all posts from the memories and append to new list
         for mem in memories:
-            click.echo(f"Requesting posts by {mem.memory_day}".ljust(50, " ") + mem.id)
+            logging.info(f"Requesting posts by {mem.memory_day}".ljust(50, " ") + mem.id)
 
             if mem.num_posts_for_moment != 1 and not mem.moment_Id.startswith("brm-"):
                 postsRequest = self.api_request("get", f"feeds/memories-v1/{mem.moment_Id}")
