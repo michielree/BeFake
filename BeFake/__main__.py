@@ -47,39 +47,13 @@ def cli(ctx):
 @cli.command(help="Login to BeReal")
 @click.argument("phone_number", type=str)
 @click.argument("deviceid", type=str, default=''.join(random.choices(string.ascii_lowercase + string.digits, k=16)))
-@click.option("backend", "--backend", "-b", type=click.Choice(["vonage", "firebase", "recaptcha", "cloud"]), default="cloud",
-              show_default=True)
-def login(phone_number, deviceid, backend):
+def login(phone_number, deviceid):
     bf = BeFake(deviceId=deviceid)
-    if backend == "cloud":
-        bf.send_otp_cloud(phone_number)
-        otp = input("Enter otp: ")
-        bf.verify_otp_cloud(otp)
-        bf.save()
-        click.echo("Cloud login successful.")
-    elif backend == "vonage":
-        bf.send_otp_vonage(phone_number)
-        otp = input("Enter otp: ")
-        bf.verify_otp_vonage(otp)
-        bf.save()
-        click.echo("Vonage login successful.")
-    elif backend == "firebase":
-        bf.send_otp_firebase(phone_number)
-        otp = input("Enter otp: ")
-        bf.verify_otp_firebase(otp)
-        bf.save()
-        click.echo("Firebase login successful.")
-    elif backend == "recaptcha":
-        click.echo("Follow the instructions at https://github.com/notmarek/BeFake/wiki/reCAPTCHA for your operating system.")
-        click.echo("\n\nOpen the following URL:")
-        click.echo(bf.get_recaptcha_url())
-        click.echo()
-        recaptcha_token = input("Enter reCAPTCHA token: ")
-        bf.send_otp_recaptcha(recaptcha_token, phone_number)
-        otp = input("Enter otp: ")
-        bf.verify_otp_firebase(otp)
-        bf.save()
-        click.echo("Firebase reCAPTCHA login successful.")
+    bf.send_otp_cloud(phone_number)
+    otp = input("Enter otp: ")
+    bf.verify_otp_cloud(otp)
+    bf.save()
+    click.echo("Cloud login successful.")
 
     click.echo("You can now try to use the other commands ;)")
 
@@ -114,12 +88,10 @@ def feed(bf, feed_id, save_location, realmoji_location, instant_realmoji_locatio
     logging.debug(f"base dir: {BASE_DIR.absolute()}")
 
     FEEDGETTER_MAP = {
-        # 'friends': bf.get_friends_feed,
         'friends-v1': bf.get_friendsv1_feed,
         'friends-of-friends': bf.get_fof_feed,
         'memories': bf.get_memories_feed,
         'memories-v1': bf.get_memoriesv1_feed,
-        'discovery': bf.get_discovery_feed,
     }
     feed = FEEDGETTER_MAP[feed_id]()
 

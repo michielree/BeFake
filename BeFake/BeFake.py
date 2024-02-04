@@ -167,66 +167,6 @@ class BeFake:
         # TODO: Include error message in exception
         return res.json()
 
-    def send_otp_firebase(self, phone: str) -> None:  # iOS Firebase OTP
-        res = self.client.post(
-            "https://www.googleapis.com/identitytoolkit/v3/relyingparty/sendVerificationCode",
-            params={"key": self.gapi_key},
-            data={
-                "phoneNumber": phone,
-                "iosReceipt": "AEFDNu9QZBdycrEZ8bM_2-Ei5kn6XNrxHplCLx2HYOoJAWx-uSYzMldf66-gI1vOzqxfuT4uJeMXdreGJP5V1pNen_IKJVED3EdKl0ldUyYJflW5rDVjaQiXpN0Zu2BNc1c",
-            },
-        )
-        if not res.is_success:
-            raise Exception(res.content)
-        res = res.json()
-        self.otp_session = res["sessionInfo"]
-
-    def get_recaptcha_url(self):
-        validUrlRes = self.client.get("https://www.googleapis.com/identitytoolkit/v3/relyingparty/getProjectConfig",
-                                      params={"key": self.gapi_key}).json()
-        recaptcha_instances = validUrlRes["authorizedDomains"]
-        payload = {'apiKey': self.gapi_key, 'authType': 'verifyApp',
-                   'apn': 'com.bereal.ft', 'v': 'XX21001000', 'eid': 'p',
-                   'appName': '[DEFAULT]', 'sha1Cert': '1d14ab0c48b1b2ad252c79d65f48bae37aefe8bb',
-                   'publicKey': 'CKHQydkDEtsBCs4BCj10eXBlLmdvb2dsZWFwaXMuY29tL2dvb2dsZS5jcnlwdG8udGluay5FY2ll\nc0FlYWRIa2RmUHVibGljS2V5EooBEkQKBAgCEAMSOhI4CjB0eXBlLmdvb2dsZWFwaXMuY29tL2dv\nb2dsZS5jcnlwdG8udGluay5BZXNHY21LZXkSAhAQGAEYARogDBxbrkTTsYg1gvrVOX-qAi4i64nb\n_d_VC_WLuZuJ98oiIAVLfq0TkXxNNDATcMIb2OjBdxyJtqAkUMdU6kNGqjn1GAMQARih0MnZAyAB'}
-
-        return "https://" + recaptcha_instances[1] + "/__/auth/handler?" + urllib.parse.urlencode(payload)
-
-    def send_otp_recaptcha(self, recaptchaToken: str, phone: str):  #
-        payload = {
-            "phoneNumber": phone,
-            "recaptchaToken": recaptchaToken,
-        }
-
-        res = self.client.post(
-            "https://www.googleapis.com/identitytoolkit/v3/relyingparty/sendVerificationCode",
-            params={"key": self.gapi_key},
-            json=payload)
-        if not res.is_success:
-            raise Exception(res.content)
-        res = res.json()
-        self.otp_session = res["sessionInfo"]
-
-    def send_otp_vonage(self, phone: str) -> None:
-        self.phone = phone
-        data = {
-            "phoneNumber": phone,
-            "deviceId": self.deviceId
-        }
-        vonageRes = self.client.post(
-            "https://auth.bereal.team/api/vonage/request-code",
-            headers={
-                "user-agent": "BeReal/8586 CFNetwork/1240.0.4 Darwin/20.6.0",
-            },
-            data=data)
-        if not vonageRes.is_success:
-            raise Exception(vonageRes.content)
-        if vonageRes.json()["status"] != '0':
-            print("WARNING: " + vonageRes.json()["errorText"])
-            print(
-                "If you already received a code before, ignore the warning and enter it.")
-        self.otp_session = vonageRes.json()["vonageRequestId"]
-
     def send_otp_cloud(self, phone: str) -> None:
         self.phone = phone
         # First request to get receip token
@@ -270,52 +210,6 @@ class BeFake:
             raise Exception(secondRes.content)
         secondResData = secondRes.json()
         self.otp_session = secondResData["sessionInfo"]
-
-    def verify_otp_firebase(self, otp: str) -> None:
-        if self.otp_session is None:
-            raise Exception("No open otp session (firebase).")
-
-        tokenRes = self.client.post(
-            "https://www.googleapis.com/identitytoolkit/v3/relyingparty/verifyPhoneNumber?key=" + self.gapi_key,
-            params={"key": self.gapi_key},
-            data={
-                "sessionInfo": self.otp_session,
-                "code": otp,
-            },
-        )
-        if not tokenRes.is_success:
-            raise Exception(tokenRes.content)
-        tokenRes = tokenRes.json()
-        self.firebase_refresh_token = tokenRes["refreshToken"]
-        self.phone = tokenRes["phoneNumber"]
-        self.firebase_refresh_tokens()
-        self.grant_access_token()
-
-    def verify_otp_vonage(self, otp: str) -> None:
-        if self.otp_session is None:
-            raise Exception("No open otp session (vonage).")
-        vonageRes = self.client.post("https://auth.bereal.team/api/vonage/check-code", json={
-            "code": otp,
-            "vonageRequestId": self.otp_session
-        })
-        if not vonageRes.is_success:
-            print("Error: " + str(vonageRes.json()
-                  ["statusCode"]) + vonageRes.json()["message"])
-            print("Make sure you entered the right code")
-        vonageRes = vonageRes.json()
-        idTokenRes = self.client.post("https://www.googleapis.com/identitytoolkit/v3/relyingparty/verifyCustomToken",
-                                      params={"key": self.gapi_key}, json={
-                                          "token": vonageRes["token"],
-                                          "returnSecureToken": True
-                                      })
-        if not idTokenRes.is_success:
-            raise Exception(idTokenRes.content)
-
-        idTokenRes = idTokenRes.json()
-
-        self.firebase_refresh_token = idTokenRes["refreshToken"]
-        self.firebase_refresh_tokens()
-        self.grant_access_token()
 
     def verify_otp_cloud(self, otp: str) -> None:
         if self.otp_session is None:
