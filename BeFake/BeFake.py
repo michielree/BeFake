@@ -58,27 +58,15 @@ class BeFake:
             verify=not disable_ssl,
             headers={
                 # █ bereal-* headers
-                # "bereal-app-language": "en",
-                # "bereal-app-version": "1.13.1",
-                "bereal-app-version-code": "14549",  # was 1590
-                "bereal-device-id": 'berealdeviceid',  # FIXME: taken from @rvaidun; should self.deviceId be used instead?
-                # "bereal-device-language": "en",
-                # "bereal-os-version": "13",
-                # "bereal-platform": "android",
-                "bereal-signature": "berealsignature",
+                "bereal-app-version-code": "14549",
+                "bereal-device-id": 'anything',  # FIXME: taken from @rvaidun; should self.deviceId be used instead?
+                "bereal-signature": "anything",
                 "bereal-timezone": "Europe/London",  # UTC Timezone
                 # █ other headers
                 "accept": "*/*",
-                # "Accept-Encoding": "gzip",
                 "accept-language": "en",
                 "Connection": "Keep-Alive",
-                # "User-Agent": "okhttp/4.11.0",
-                "user-agent": "FirebaseAuth.iOS/8.15.0 AlexisBarreyat.BeReal/0.22.4 iPhone/14.7.1 hw/iPhone9_1",
-                "x-client-version": "iOS/FirebaseSDK/8.15.0/FirebaseCore-iOS",
-                "x-firebase-client": "apple-platform/ios apple-sdk/19F64 appstore/true deploy/cocoapods device/iPhone9,1 fire-abt/8.15.0 fire-analytics/8.15.0 fire-auth/8.15.0 fire-db/8.15.0 fire-dl/8.15.0 fire-fcm/8.15.0 fire-fiam/8.15.0 fire-fst/8.15.0 fire-fun/8.15.0 fire-install/8.15.0 fire-ios/8.15.0 fire-perf/8.15.0 fire-rc/8.15.0 fire-str/8.15.0 firebase-crashlytics/8.15.0 os-version/14.7.1 xcode/13F100",
-                # "x-firebase-client-log-type": "0",
-                "x-firebase-locale": "en",
-                "x-ios-bundle-identifier": "AlexisBarreyat.BeReal",
+                "User-Agent": "okhttp/4.11.0",
             },
             timeout=15
         )
@@ -88,6 +76,15 @@ class BeFake:
         if refresh_token is not None:
             self.refresh_token = refresh_token
             self.refresh_tokens()
+
+        self.FIREBASE_AUTH_HEADERS = {
+            "x-client-version": "iOS/FirebaseSDK/9.6.0/FirebaseCore-iOS",
+            "x-ios-bundle-identifier": "AlexisBarreyat.BeReal",
+            "accept-language": "en",
+            "user-agent":
+            "FirebaseAuth.iOS/9.6.0 AlexisBarreyat.BeReal/0.31.0 iPhone/14.7.1 hw/iPhone9_1",
+            "x-firebase-locale": "en",
+            }
 
     def __repr__(self):
         return f"BeFake(user_id={self.user_id})"
@@ -158,9 +155,7 @@ class BeFake:
         res = self.client.request(
             method,
             f"{self.api_url}/{endpoint}",
-            headers={
-                "authorization": "Bearer " + self.token,
-            },
+            headers=self.FIREBASE_AUTH_HEADERS,
             **kwargs,
         )
         res.raise_for_status()
@@ -175,16 +170,8 @@ class BeFake:
             "https://www.googleapis.com/identitytoolkit/v3/relyingparty/verifyClient",
             params={"key": self.gapi_key},
             json=firstData,
-            headers={"content-type": "application/json",
-                     "accept": "*/*",
-                     "x-client-version": "iOS/FirebaseSDK/9.6.0/FirebaseCore-iOS",
-                     "x-ios-bundle-identifier": "AlexisBarreyat.BeReal",
-                     "accept-language": "en",
-                     "user-agent":
-                     "FirebaseAuth.iOS/9.6.0 AlexisBarreyat.BeReal/0.31.0 iPhone/14.7.1 hw/iPhone9_1",
-                     "x-firebase-locale": "en",
-                     "x-firebase-gmpid": "1:405768487586:ios:28c4df089ca92b89"
-                     })
+            headers=self.FIREBASE_AUTH_HEADERS
+        )
         if not firstRes.is_success:
             raise Exception(firstRes.content)
         firstResData = firstRes.json()
@@ -195,16 +182,7 @@ class BeFake:
             "https://www.googleapis.com/identitytoolkit/v3/relyingparty/sendVerificationCode",
             params={"key": self.gapi_key},
             json=secondData,
-            headers={"content-type": "application/json",
-                     "accept": "*/*",
-                     "x-client-version": "iOS/FirebaseSDK/9.6.0/FirebaseCore-iOS",
-                     "x-ios-bundle-identifier": "AlexisBarreyat.BeReal",
-                     "accept-language": "en",
-                     "user-agent":
-                     "FirebaseAuth.iOS/9.6.0 AlexisBarreyat.BeReal/0.31.0 iPhone/14.7.1 hw/iPhone9_1",
-                     "x-firebase-locale": "en",
-                     "x-firebase-gmpid": "1:405768487586:ios:28c4df089ca92b89"
-                     }
+            headers=self.FIREBASE_AUTH_HEADERS
         )
         if not secondRes.is_success:
             raise Exception(secondRes.content)
@@ -224,9 +202,7 @@ class BeFake:
         VerificationRes = self.client.post(
             apiUrl,
             params={"key": self.gapi_key},
-            headers={
-                "content-Type": "application/json",
-            },
+            headers=self.FIREBASE_AUTH_HEADERS,
             json=data
         )
         if not VerificationRes.is_success:
@@ -282,14 +258,8 @@ class BeFake:
                                data={"grantType": "refresh_token",
                                      "refreshToken": self.firebase_refresh_token
                                      },
-                               headers={
-                                   "x-android-cert": "1D14AB0C48B1B2AD252C79D65F48BAE37AEFE8BB",
-                                   "x-android-package": "com.bereal.ft",
-                                   "x-client-version": "Android/Fallback/X22001002/FirebaseCore-Android",
-                                   "x-firebase-client": "H4sIAAAAAAAAAKtWykhNLCpJSk0sKVayio7VUSpLLSrOzM9TslIyUqoFAFyivEQfAAAA",
-                                   "x-firebase-gmpid": "1:405768487586:android:5c3e788d715d72c2dc8dfb",
-                                   "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 13; sdk_gphone64_x86_64 Build/TE1A.220922.010)",
-        })
+                               headers=self.FIREBASE_AUTH_HEADERS
+        )
         if not res.is_success:
             raise Exception(res.content)
         res = res.json()
