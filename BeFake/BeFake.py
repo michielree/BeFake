@@ -155,7 +155,7 @@ class BeFake:
         res = self.client.request(
             method,
             f"{self.api_url}/{endpoint}",
-            headers=self.FIREBASE_AUTH_HEADERS,
+            headers={"authorization": f"Bearer {self.token}"},  # FIXME: works, but possibly incomplete
             **kwargs,
         )
         res.raise_for_status()
