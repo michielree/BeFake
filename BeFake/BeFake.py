@@ -10,6 +10,7 @@ from typing import Optional
 import httpx
 import pendulum
 
+from .config import CONFIG
 from .models.memory import Memory
 from .models.memory_v1 import Memory_v1
 from .models.post import FOFPost, Post
@@ -19,8 +20,8 @@ from .models.user import User
 
 
 def _get_config_dir() -> str:
-    """Source: Instaloader (MIT License)
-    https://github.com/instaloader/instaloader/blob/3cc29a4/instaloader/instaloader.py#L30-L39"""
+    # Source: Instaloader (MIT License)
+    # https://github.com/instaloader/instaloader/blob/3cc29a4/instaloader/instaloader.py#L30-L39
     if platform.system() == "Windows":
         # on Windows, use %LOCALAPPDATA%\BeFake
         localappdata = os.getenv("LOCALAPPDATA")
@@ -31,9 +32,9 @@ def _get_config_dir() -> str:
 
 
 def get_default_session_filename() -> str:
-    """Returns default token filename for given phone number.
-    Source: Instaloader (MIT License)
-    https://github.com/instaloader/instaloader/blob/3cc29a4/instaloader/instaloader.py#L42-L46"""
+    """Returns default token filename for given phone number."""
+    # Source: Instaloader (MIT License)
+    # https://github.com/instaloader/instaloader/blob/3cc29a4/instaloader/instaloader.py#L42-L46
 
     if os.environ.get('IS_DOCKER', False):
         return '/data/session.json'
@@ -51,40 +52,18 @@ class BeFake:
             disable_ssl=False,
             deviceId=None,  # NOTE: defaults to a random string in the CLI
             api_url="https://mobile.bereal.com/api",
-            google_api_key="AIzaSyDwjfEeparokD7sXPVQli9NsTuhT6fJ6iA",
     ) -> None:
         self.client = httpx.Client(
             proxies=proxies,
             verify=not disable_ssl,
-            headers={
-                # █ bereal-* headers
-                "bereal-app-version-code": "14549",
-                "bereal-device-id": 'anything',  # FIXME: taken from @rvaidun; should self.deviceId be used instead?
-                "bereal-signature": "anything",
-                "bereal-timezone": "Europe/London",  # UTC Timezone
-                # █ other headers
-                "accept": "*/*",
-                "accept-language": "en",
-                "Connection": "Keep-Alive",
-                "User-Agent": "okhttp/4.11.0",
-            },
-            timeout=15
+            headers=CONFIG["bereal"]["api-headers"],
+            timeout=15,
         )
-        self.gapi_key = google_api_key
         self.api_url = api_url
         self.deviceId = deviceId
         if refresh_token is not None:
             self.refresh_token = refresh_token
             self.refresh_tokens()
-
-        self.FIREBASE_AUTH_HEADERS = {
-            "x-client-version": "iOS/FirebaseSDK/9.6.0/FirebaseCore-iOS",
-            "x-ios-bundle-identifier": "AlexisBarreyat.BeReal",
-            "accept-language": "en",
-            "user-agent":
-            "FirebaseAuth.iOS/9.6.0 AlexisBarreyat.BeReal/0.31.0 iPhone/14.7.1 hw/iPhone9_1",
-            "x-firebase-locale": "en",
-            }
 
     def __repr__(self):
         return f"BeFake(user_id={self.user_id})"
@@ -126,7 +105,7 @@ class BeFake:
             os.chmod(dirname, 0o700)
         with open(file_path, "w") as f:
             os.chmod(file_path, 0o600)
-            f.write(json.dumps(session))
+            f.write(json.dumps(session, indent=4))
 
     def load(self, file_path: Optional[str] = None) -> None:
         if file_path is None:
@@ -162,53 +141,49 @@ class BeFake:
         # TODO: Include error message in exception
         return res.json()
 
-    def send_otp_cloud(self, phone: str) -> None:
+    def request_otp(self, phone: str) -> None:
         self.phone = phone
-        # First request to get receip token
-        firstData = {"appToken": "54F80A258C35A916B38A3AD83CA5DDD48A44BFE2461F90831E0F97EBA4BB2EC7"}
-        firstRes = self.client.post(
-            "https://www.googleapis.com/identitytoolkit/v3/relyingparty/verifyClient",
-            params={"key": self.gapi_key},
-            json=firstData,
-            headers=self.FIREBASE_AUTH_HEADERS
-        )
-        if not firstRes.is_success:
-            raise Exception(firstRes.content)
-        firstResData = firstRes.json()
-        receipt = firstResData["receipt"]
-        # Second request to get the session
-        secondData = {"phoneNumber": phone, "iosReceipt": receipt}
-        secondRes = self.client.post(
-            "https://www.googleapis.com/identitytoolkit/v3/relyingparty/sendVerificationCode",
-            params={"key": self.gapi_key},
-            json=secondData,
-            headers=self.FIREBASE_AUTH_HEADERS
-        )
-        if not secondRes.is_success:
-            raise Exception(secondRes.content)
-        secondResData = secondRes.json()
-        self.otp_session = secondResData["sessionInfo"]
 
-    def verify_otp_cloud(self, otp: str) -> None:
+        # Request 1: get receipt token
+        res1 = self.client.post(
+            "https://www.googleapis.com/identitytoolkit/v3/relyingparty/verifyClient",
+            params={"key": CONFIG["google"]["api-key"]},
+            json={"appToken": CONFIG["google"]["appToken"]},
+            headers=CONFIG["firebase"]["headers"],
+        )
+        if not res1.is_success:
+            raise Exception(res1.content)
+        receipt = res1.json()["receipt"]
+
+        # Request 2: get the session
+        res2 = self.client.post(
+            "https://www.googleapis.com/identitytoolkit/v3/relyingparty/sendVerificationCode",
+            params={"key": CONFIG["google"]["api-key"]},
+            json={"phoneNumber": phone, "iosReceipt": receipt},
+            headers=CONFIG["firebase"]["headers"],
+        )
+        if not res2.is_success:
+            raise Exception(res2.content)
+        self.otp_session = res2.json()["sessionInfo"]
+
+    def verify_otp(self, otp: str) -> None:
         if self.otp_session is None:
-            raise Exception("No open otp session (cloud).")
+            raise Exception("No open OTP session.")
         # Request can only accept plain text JSON=> string
         data = {
             "code": otp,
             "sessionInfo": self.otp_session,
             "operation": "SIGN_UP_OR_IN"
         }
-        apiUrl = "https://www.googleapis.com/identitytoolkit/v3/relyingparty/verifyPhoneNumber"
-        VerificationRes = self.client.post(
-            apiUrl,
-            params={"key": self.gapi_key},
-            headers=self.FIREBASE_AUTH_HEADERS,
-            json=data
+        res = self.client.post(
+            "https://www.googleapis.com/identitytoolkit/v3/relyingparty/verifyPhoneNumber",
+            params={"key": CONFIG["google"]["api-key"]},
+            headers=CONFIG["firebase"]["headers"],
+            json=data,
         )
-        if not VerificationRes.is_success:
-            raise Exception(VerificationRes.content)
-        VerificationRes = VerificationRes.json()
-        self.firebase_refresh_token = VerificationRes["refreshToken"]
+        if not res.is_success:
+            raise Exception(res.content)
+        self.firebase_refresh_token = res.json()["refreshToken"]
         self.firebase_refresh_tokens()
         self.grant_access_token()
 
@@ -220,8 +195,7 @@ class BeFake:
             "https://auth.bereal.team/token",
             params={"grant_type": "refresh_token"},
             json={"grant_type": "refresh_token",
-                  "client_id": "android",
-                  "client_secret": "F5A71DA-32C7-425C-A3E3-375B4DACA406",
+                  **CONFIG["bereal"]["auth-data"],
                   "refresh_token": self.refresh_token
                   })
         if not res.is_success:
@@ -236,59 +210,65 @@ class BeFake:
         self.save()
 
     def grant_access_token(self) -> None:
-        res = self.client.post("https://auth.bereal.team/token", params={"grant_type": "firebase"}, json={
-            "grant_type": "firebase",
-            "client_id": "android",
-            "client_secret": "F5A71DA-32C7-425C-A3E3-375B4DACA406",
-            "token": self.firebase_token
-        })
+        res = self.client.post(
+            "https://auth.bereal.team/token",
+            params={"grant_type": "firebase"},
+            json={
+                "grant_type": "firebase",
+                **CONFIG["bereal"]["auth-data"],
+                "token": self.firebase_token
+            },
+        )
         if not res.is_success:
             raise Exception(res.content)
 
         res = res.json()
 
         self.token = res["access_token"]
-        self.token_info = json.loads(
-            b64decode(res["access_token"].split(".")[1] + '=='))
+        self.token_info = json.loads(b64decode(res["access_token"].split(".")[1] + '=='))
         self.refresh_token = res["refresh_token"]
         self.expiration = pendulum.now().add(seconds=int(res["expires_in"]))
 
     def firebase_refresh_tokens(self) -> None:
-        res = self.client.post("https://securetoken.googleapis.com/v1/token", params={"key": self.gapi_key},
-                               data={"grantType": "refresh_token",
-                                     "refreshToken": self.firebase_refresh_token
-                                     },
-                               headers=self.FIREBASE_AUTH_HEADERS
+        res = self.client.post(
+            "https://securetoken.googleapis.com/v1/token",
+            params={"key": CONFIG["google"]["api-key"]},
+            data={"grantType": "refresh_token",
+                  "refreshToken": self.firebase_refresh_token
+                  },
+            headers=CONFIG["firebase"]["headers"],
         )
         if not res.is_success:
             raise Exception(res.content)
         res = res.json()
         self.firebase_refresh_token = res["refresh_token"]
         self.firebase_token = res["id_token"]
-        self.firebase_expiration = pendulum.now().add(
-            seconds=int(res["expires_in"]))
+        self.firebase_expiration = pendulum.now().add(seconds=int(res["expires_in"]))
         self.user_id = res["user_id"]
         # self.save() #Cant save here because we dont have the user_id yet
 
     def get_account_info(self):
-        res = self.client.post("https://www.googleapis.com/identitytoolkit/v3/relyingparty/getAccountInfo",
-                               params={"key": self.gapi_key}, data={"idToken": self.firebase_token})
+        res = self.client.post(
+            "https://www.googleapis.com/identitytoolkit/v3/relyingparty/getAccountInfo",
+            params={"key": CONFIG["google"]["api-key"]},
+            data={"idToken": self.firebase_token},
+        )
         if not res.is_success:
             raise Exception(res.content)
 
         self.user_id = res["users"][0]["localId"]
 
-    def get_user_info(self):
+    def get_user_info(self) -> User:
         res = self.api_request("get", "person/me")
         return User(res, self)
 
-    def get_user_profile(self, user_id):
+    def get_user_profile(self, user_id) -> User:
         # here for example we have a firebase-instance-id-token header with the value from the next line, that we can just ignore (but maybe we need it later, there seem to be some changes to the API especially endpoints moving tho the cloudfunctions.net server)
         # cTn8odwxQo6DR0WFVnM9TJ:APA91bGV86nmQUkqnLfFv18IhpOak1x02sYMmKvpUAqhdfkT9Ofg29BXKXS2mbt9oE-LoHiiKViXw75xKFLeOxhb68wwvPCJF79z7V5GbCsIQi7XH1RSD8ItcznqM_qldSDjghf5N8Uo
         res = self.api_request("get", f"person/profiles/{user_id}")
         return User(res, self)
 
-    def get_friendsv1_feed(self):
+    def get_friendsv1_feed(self) -> list[PostsV1]:
         res = self.api_request("get", "feeds/friends-v1")
         user = []
         friends = []
@@ -302,11 +282,11 @@ class BeFake:
         res = self.api_request("get", "feeds/friends-of-friends")
         return [FOFPost(p, self) for p in res["data"]]
 
-    def get_discovery_feed(self):
+    def get_discovery_feed(self) -> list[Post]:
         res = self.api_request("get", "feeds/discovery")
         return [Post(p, self) for p in res["posts"]]
 
-    def get_memories_feed(self):
+    def get_memories_feed(self) -> list[Memory]:
         res = self.api_request("get", "feeds/memories")
         return [Memory(mem, self) for mem in res["data"]]
 
@@ -339,7 +319,7 @@ class BeFake:
         return res
 
     def get_memories_video(self):
-        res = self.api_request("get", f"memories/video")
+        res = self.api_request("get", "memories/video")
         return res
 
     def delete_video_memory(self, memory_id: str):
@@ -357,15 +337,15 @@ class BeFake:
         return User(res, self)
 
     def get_friends(self):
-        res = self.api_request("get", f"relationships/friends")
+        res = self.api_request("get", "relationships/friends")
         return [User(friend, self) for friend in res["data"]]
 
     def get_friend_suggestions(self, next=None):
         if next:
             res = self.api_request(
-                "get", f"relationships/suggestions", params={"page": next})
+                "get", "relationships/suggestions", params={"page": next})
         else:
-            res = self.api_request("get", f"relationships/suggestions")
+            res = self.api_request("get", "relationships/suggestions")
 
         return [User(suggestion, self) for suggestion in res["data"]], res["next"]
 
@@ -390,12 +370,11 @@ class BeFake:
             hashlib.sha256(phone_number.encode("utf-8")).hexdigest()
             for phone_number in phone_numbers
         ]
-        res = self.api_request("post",
-                               "relationships/contacts",
-                               data={
-                                   "phoneNumbers": hashed_phone_numbers,
-                               },
-                               )
+        res = self.api_request(
+            "post",
+            "relationships/contacts",
+            data={"phoneNumbers": hashed_phone_numbers},
+        )
         return [User(user, self) for user in res]
 
     def get_user_by_phone_number(self, phone_number: str):
@@ -461,14 +440,7 @@ class BeFake:
     def upload_realmoji(self, image_file: bytes, emoji_type: str):
         picture = RealmojiPicture({})
         path = picture.upload(self, image_file)
-        emojis = {
-            "up": "👍",
-            "happy": "😃",
-            "surprised": "😲",
-            "laughing": "😂",
-            "heartEyes": "😍"
-        }
-        if emoji_type not in emojis:
+        if emoji_type not in CONFIG["bereal"]["realmoji-map"]:
             raise ValueError("Not a valid emoji type")
 
         data = {
@@ -478,13 +450,11 @@ class BeFake:
                 "width": picture.width,
                 "height": picture.height
             },
-            "emoji": emojis[emoji_type]
+            "emoji": CONFIG["bereal"]["realmoji-map"][emoji_type]
         }
 
         res = self.api_request("put", "person/me/realmojis", data=data)
         return res
-
-    # IT WORKS!!!!
 
     def post_realmoji(
             self,
@@ -492,14 +462,7 @@ class BeFake:
             user_id: str,
             emoji_type: str,
     ):
-        emojis = {
-            "up": "👍",
-            "happy": "😃",
-            "surprised": "😲",
-            "laughing": "😍",
-            "heartEyes": "😂"
-        }
-        if emoji_type not in emojis:
+        if emoji_type not in CONFIG["bereal"]["realmoji-map"]:
             raise ValueError("Not a valid emoji type")
 
         payload = {
@@ -508,10 +471,9 @@ class BeFake:
         }
 
         json_data = {
-            "emoji": emojis[emoji_type]
+            "emoji": CONFIG["bereal"]["realmoji-map"][emoji_type]
         }
-        res = self.api_request("put", f"content/realmojis", params=payload,
-                               json=json_data)
+        res = self.api_request("put", "content/realmojis", params=payload, json=json_data)
         return res
 
     def post_instant_realmoji(self, post_id: str, owner_id: str, image_file: bytes):
@@ -575,5 +537,5 @@ class BeFake:
         return res
 
     def remove_profile_picture(self):
-        res = self.api_request("delete", f"person/me/profile-picture")
+        res = self.api_request("delete", "person/me/profile-picture")
         return res

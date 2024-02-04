@@ -9,6 +9,7 @@ import click
 from rich.logging import RichHandler
 
 from .BeFake import BeFake
+from .config import CONFIG
 from .models.post import Location, Post
 
 logging.basicConfig(
@@ -48,13 +49,13 @@ def cli(ctx):
 @click.argument("phone_number", type=str)
 @click.argument("deviceid", type=str, default=''.join(random.choices(string.ascii_lowercase + string.digits, k=16)))
 def login(phone_number, deviceid):
+    # NOTE: Other, deprecated login methods have been removed. Check the git history if you need them.
     bf = BeFake(deviceId=deviceid)
-    bf.send_otp_cloud(phone_number)
-    otp = input("Enter otp: ")
-    bf.verify_otp_cloud(otp)
+    bf.request_otp(phone_number)
+    otp = input("Enter OTP: ")
+    bf.verify_otp(otp)
     bf.save()
-    click.echo("Cloud login successful.")
-
+    click.echo("Login successful.")
     click.echo("You can now try to use the other commands ;)")
 
 
@@ -305,7 +306,7 @@ def instant_realmoji(bf, post_id, user_id, filename):
 
 
 @cli.command(help="Upload an emoji-specific realmoji")
-@click.argument("type", type=click.Choice(["up", "happy", "surprised", "laughing", "heartEyes"]))
+@click.argument("type", type=click.Choice(CONFIG["bereal"]["realmoji-map"].keys()))
 @click.argument("filename", required=False, type=click.STRING)
 @load_bf
 def upload_realmoji(bf, type, filename):
@@ -321,7 +322,7 @@ def upload_realmoji(bf, type, filename):
 @cli.command(help="Add realmoji to post")
 @click.argument("post_id", type=click.STRING)
 @click.argument("user_id", type=click.STRING, required=False)
-@click.argument("type", type=click.Choice(["up", "happy", "surprised", "laughing", "heartEyes"]))
+@click.argument("type", type=click.Choice(CONFIG["bereal"]["realmoji-map"].keys()))
 @load_bf
 def emoji_realmoji(bf, post_id, user_id, type):
     type = str(type)
