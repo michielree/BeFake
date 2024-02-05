@@ -47,6 +47,7 @@ docker run -v "{HOST_DATA_DIRECTORY}:/data" -v "{TOKEN}:/data/token.txt" ghcr.io
 - CLI clients / libraries
   - https://github.com/Smart123s/BeFake
     - forked from the original _notmarek/BeFake_ (like this repo)
+    - no longer in active development; cherry-picking commits from this repo instead
     - CLI client
     - using Python
 - API wrappers
