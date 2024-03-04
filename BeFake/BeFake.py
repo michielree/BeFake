@@ -1,13 +1,12 @@
 import hashlib
+import hmac
 import json
 import logging
 import os
 import platform
-import urllib.parse
-from time import time
 from base64 import b64decode, b64encode
+from time import time
 from typing import Optional
-from Crypto.Hash import HMAC, SHA256
 from uuid import uuid4
 
 import httpx
@@ -149,7 +148,7 @@ class BeFake:
         ts = int(time())  # current timestamp
 
         message = b64encode(f"{d_id}{tz}{ts}".encode())
-        hmac_digest = HMAC.new(secret_key, message, SHA256).digest()
+        hmac_digest = hmac.new(secret_key, message, hashlib.sha256).digest()
         sign = b64encode(f"1:{ts}:".encode() + hmac_digest).decode()
 
         return sign
