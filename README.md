@@ -8,7 +8,7 @@ A cool tool for collecting all your friends' photos from BeReal (including RealM
 
 > [!NOTE]
 > This is a fork of [notmarek/BeFake](https://github.com/notmarek/BeFake), which unfortunately has been cease-and-desisted by BeReal.
-> I maintain this fork for personal use, so I cannot promise that features besides _login_ and _friends feed_ will work. PRs are welcome either way!
+> I ([@NicoWeio](https://github.com/NicoWeio/)) maintain this fork for personal use, so I cannot promise that features besides _login_ and _friends feed_ will work. PRs are welcome either way!
 
 > [!WARNING]
 > Because this is primarily for personal use, there _will_ be breaking changes without warning. Make sure to pin the version you are using!
